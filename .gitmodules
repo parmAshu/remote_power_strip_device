@@ -1,0 +1,9 @@
+[submodule "simple-serial"]
+	path = simple-serial
+	url = https://github.com/parmAshu/simple-serial
+[submodule "src/simple-serial"]
+	path = src/simple-serial
+	url = https://github.com/parmAshu/simple-serial
+[submodule "src/SimplyAtomic"]
+	path = src/SimplyAtomic
+	url = https://github.com/wizard97/SimplyAtomic
