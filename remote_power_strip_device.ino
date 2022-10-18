@@ -66,6 +66,9 @@ static u8 channel_map[NUM_CHANNELS] = {
   9
 };
 
+/* Array to hold channel states */
+static u8 channel_state[NUM_CHANNELS];
+
 static u8 n_rps_commands;
 
 //*********************************************************************************************
@@ -88,7 +91,7 @@ void rps_info_handler( void ) {
   send_msg.message[3] = (u8) ( NUM_CHANNELS );
 
   for( u8 i=0; i<NUM_CHANNELS; i++ ) {
-    send_msg.message[ 4 + i ] = (u8)digitalRead( channel_map[i] );
+    send_msg.message[ 4 + i ] = (u8) channel_state[ i ];
   }
 
   send_msg.len = (u8) ( NUM_CHANNELS + 4 );
@@ -105,7 +108,7 @@ void rps_status_all_handler( void ) {
   send_msg.message[0] = (u8) (NUM_CHANNELS);
 
   for( u8 i=0; i<NUM_CHANNELS; i++ ) {
-    send_msg.message[ 1 + i ] = (u8)digitalRead( channel_map[i] );
+    send_msg.message[ 1 + i ] = (u8) channel_state[ i ];
   }
 
   send_msg.len = (u8) ( NUM_CHANNELS + 1 );
@@ -121,7 +124,7 @@ void rps_status_one_handler( void ) {
   send_msg.ver = 1;
   send_msg.title = TITLE_STATUS_ONE;
   send_msg.message[0] = recv_msg.message[0];
-  send_msg.message[1] = (u8) digitalRead( channel_map[ recv_msg.message[0] ] );
+  send_msg.message[1] = (u8) channel_state[ recv_msg.message[0] ];
   send_msg.len = 2;
 
   /* Send back the response */
@@ -132,7 +135,14 @@ void rps_status_one_handler( void ) {
 void rps_set_one_handler( void ) {
 
   /* Set the state */
-  digitalWrite( channel_map[ recv_msg.message[0] ], recv_msg.message[1] );
+  if( recv_msg.message[1] == 0x00U ) {
+    digitalWrite( channel_map[ recv_msg.message[0] ], RELAY_OFF_STATE );
+    channel_state[ recv_msg.message[0] ] = (u8) 0x00U;
+  }
+  else {
+    digitalWrite( channel_map[ recv_msg.message[0] ], RELAY_ON_STATE );
+    channel_state[ recv_msg.message[0] ] = (u8) 0x01U;
+  }
   
   /* Prepare the response */
   send_msg.ver = 1;
@@ -155,9 +165,11 @@ static rps_command_s_t rps_command_map[] = {
 /* This function is used to invoke the right handler for a command */
 static u8 rps_decision_tree( void ) {
   
-  static u8 inTitle = (recv_msg.title & 0x7FU);
+  static u8 inTitle, ret;
   static void (*func)(void);
-  static u8 ret = 0;
+
+  inTitle = (recv_msg.title & 0x7FU);
+  ret = 0U;
   
   for( static u8 i=0; i<n_rps_commands; i++) {
     
@@ -195,8 +207,9 @@ void setup() {
   for( u8 channel=0; channel<NUM_CHANNELS; channel++ ) {
     pinMode( channel_map[channel], OUTPUT );
     digitalWrite( channel_map[channel], RELAY_OFF_STATE );
+    channel_state[ channel ] = (u8) 0x00U;
   }
-
+  
 }
 
 void loop() 
