@@ -19,8 +19,8 @@
 #define NUM_CHANNELS (8U)
 
 /* Macros to define logic levels for relay on state and relay off state */
-#define RELAY_ON_STATE HIGH
-#define RELAY_OFF_STATE LOW
+#define RELAY_ON_STATE LOW
+#define RELAY_OFF_STATE HIGH
 
 /* Maximum number of bytes in the response message */
 #define RESPONSE_MAX_BYTES (20U)
@@ -125,7 +125,7 @@ void rps_status_one_handler( void ) {
   send_msg.title = TITLE_STATUS_ONE;
   send_msg.message[0] = recv_msg.message[0];
   send_msg.message[1] = (u8) channel_state[ recv_msg.message[0] ];
-  send_msg.len = 2;
+  send_msg.len = (u8) 2U;
 
   /* Send back the response */
   simpleSerial :: send_simple_serial_message( send_msg );
@@ -165,13 +165,13 @@ static rps_command_s_t rps_command_map[] = {
 /* This function is used to invoke the right handler for a command */
 static u8 rps_decision_tree( void ) {
   
-  static u8 inTitle, ret;
+  static u8 inTitle, ret, i;
   static void (*func)(void);
 
   inTitle = (recv_msg.title & 0x7FU);
   ret = 0U;
   
-  for( static u8 i=0; i<n_rps_commands; i++) {
+  for( i=0; i<n_rps_commands; i++) {
     
     /* Check whether the command matches*/
     if( inTitle == rps_command_map[i].title ) {
@@ -209,6 +209,17 @@ void setup() {
     digitalWrite( channel_map[channel], RELAY_OFF_STATE );
     channel_state[ channel ] = (u8) 0x00U;
   }
+
+  for( u8 i=1; i<=3; i++ ) {
+    for( u8 j=0; j<NUM_CHANNELS; j++ ) {
+      digitalWrite( channel_map[j], RELAY_ON_STATE );
+    }
+    delay(1000);
+    for( u8 j=0; j<NUM_CHANNELS; j++ ) {
+      digitalWrite( channel_map[j], RELAY_OFF_STATE );
+    }
+    delay(1000);
+  }
   
 }
 
@@ -227,7 +238,7 @@ void loop()
     if( rps_decision_tree() == 0U ) {
       send_msg.title = recv_msg.title | (0x80U);
       send_msg.len = 0;
-
+      
       simpleSerial :: send_simple_serial_message( send_msg );
     }
 
